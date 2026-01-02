@@ -7,8 +7,8 @@
     <model>Fire TV</model>
     <creator>Community</creator>
     <created>01/02/2026 13:40</created>
-    <modified>01/02/2026 14:00</modified>
-    <version>4</version>
+    <modified>01/02/2026 14:48</modified>
+    <version>5</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>
