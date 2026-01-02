@@ -323,15 +323,17 @@
     <!-- Connections -->
     <connections>
         <!-- Proxy Binding Connection (Type 2) -->
-        <connection proxybindingid="5001">
+        <!-- Note: type=2 connection should NOT have proxybindingid attribute -->
+        <!-- The connection id (5001) matches the proxy's proxybindingid to link them -->
+        <connection>
             <id>5001</id>
             <type>2</type>
-            <connectionname>Fire TV</connectionname>
+            <connectionname>Control4 UI</connectionname>
             <consumer>False</consumer>
             <linelevel>False</linelevel>
             <classes>
                 <class>
-                    <classname>CABLE</classname>
+                    <classname>SATELLITE</classname>
                 </class>
             </classes>
         </connection>
@@ -371,12 +373,12 @@
         </connection>
 
         <!-- Network Connection (Type 4 = Control) -->
-        <connection>
+        <connection proxybindingid="5001">
             <id>6001</id>
             <type>4</type>
-            <connectionname>Network Connection</connectionname>
+            <connectionname>Ethernet</connectionname>
             <consumer>True</consumer>
-            <linelevel>False</linelevel>
+            <linelevel>True</linelevel>
         </connection>
     </connections>
 
