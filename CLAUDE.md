@@ -64,3 +64,33 @@ zip -r fire_tv_remote.c4z driver.xml driver.lua icons www -x "*.DS_Store"
 ### D-pad vs System Keys
 - **D-pad keys** (up/down/left/right/select): Require `keyDown` then `keyUp` with 50ms delay
 - **System keys** (home/back/menu): Single press, no keyDown/keyUp needed
+
+## Development Resources
+
+### Reference Documentation (Local)
+- `~/ftv-protocol-re/` - Reverse-engineered Fire TV protocol notes and Python reference implementation
+  - Contains complete protocol documentation, endpoint definitions, and working Python code to reference when implementing new features
+- `~/Documents/GitHub/docs-driverworks/` - Control4 DriverWorks SDK documentation
+  - Sample drivers in `sample_drivers/` (generic_tcp, ssdp_example, websocket, etc.)
+  - API reference for C4:* functions
+  - Driver development training materials
+
+### Key API Endpoints Reference
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/apps/FireTVRemote` | POST | Wake device (port 8009) |
+| `/v1/FireTV/pin/display` | POST | Request PIN display |
+| `/v1/FireTV/pin/verify` | POST | Verify PIN, get token |
+| `/v1/FireTV?action=<key>` | POST | Send key command |
+| `/v1/media?action=<action>` | POST | Media control |
+| `/v1/FireTV/text` | POST | Send text input |
+| `/v1/FireTV/status` | GET | Get device status |
+| `/v1/FireTV/properties` | GET | Get device properties |
+| `/v1/FireTV2` | GET | Get device capabilities |
+| `/v1/FireTV/appsV2` | GET | List installed apps |
+
+### Testing Notes
+- No automated tests; test by installing `.c4z` on Control4 controller via Composer Pro
+- Enable "Debug Mode" property to see detailed logs in Composer's Lua output window
+- Use "Test Connection" action to verify connectivity without pairing
