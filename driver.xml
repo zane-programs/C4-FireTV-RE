@@ -31,6 +31,24 @@
 
         <!-- Driver Properties -->
         <properties>
+            <!-- Discovery Settings -->
+            <property>
+                <name>Discovered Devices</name>
+                <type>LIST</type>
+                <items>
+                    <item>-- Select Device --</item>
+                </items>
+                <default>-- Select Device --</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>Discovery Status</name>
+                <type>STRING</type>
+                <default>Not Started</default>
+                <readonly>true</readonly>
+            </property>
+
             <!-- Connection Settings -->
             <property>
                 <name>Fire TV IP Address</name>
@@ -118,6 +136,16 @@
         <!-- Actions (UI buttons in Composer) -->
         <actions>
             <action>
+                <name>Discover Devices</name>
+                <command>DiscoverDevices</command>
+            </action>
+
+            <action>
+                <name>Stop Discovery</name>
+                <command>StopDiscovery</command>
+            </action>
+
+            <action>
                 <name>Start Pairing</name>
                 <command>StartPairing</command>
             </action>
@@ -145,6 +173,17 @@
 
         <!-- Commands (for programming and drivers) -->
         <commands>
+            <!-- Discovery Commands -->
+            <command>
+                <name>DiscoverDevices</name>
+                <description>Start mDNS discovery for Fire TV devices</description>
+            </command>
+
+            <command>
+                <name>StopDiscovery</name>
+                <description>Stop mDNS discovery</description>
+            </command>
+
             <!-- Pairing Commands -->
             <command>
                 <name>StartPairing</name>

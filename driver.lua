@@ -33,9 +33,23 @@ DEFAULT_WAKE_WAIT = 2000  -- Wait after wake before retry
 -- Network binding ID
 NET_BINDING_ID = 6001
 
+-- mDNS Configuration
+MDNS_MULTICAST_ADDR = "224.0.0.251"
+MDNS_PORT = 5353
+MDNS_SERVICE_TYPE = "_amzn-wplay._tcp.local."
+MDNS_BINDING_ID = 6999
+MDNS_DISCOVERY_TIMEOUT = 10000  -- 10 seconds
+
 --------------------------------------------------------------------------------
 -- Global State
 --------------------------------------------------------------------------------
+
+g_DiscoveredDevices = {}  -- Table of discovered Fire TV devices
+
+g_Discovery = {
+    active = false,
+    startTime = 0
+}
 
 g_FireTV = {
     host = nil,
@@ -335,6 +349,400 @@ function JSON.decode(str)
     end
 
     return parseValue()
+end
+
+--------------------------------------------------------------------------------
+-- mDNS Discovery Implementation
+--------------------------------------------------------------------------------
+
+-- DNS record types
+DNS_TYPE_A = 1
+DNS_TYPE_PTR = 12
+DNS_TYPE_TXT = 16
+DNS_TYPE_SRV = 33
+
+-- Encode a DNS name (e.g., "_amzn-wplay._tcp.local.")
+function EncodeDnsName(name)
+    local result = ""
+    for label in string.gmatch(name, "([^%.]+)") do
+        result = result .. string.char(#label) .. label
+    end
+    result = result .. string.char(0)  -- Null terminator
+    return result
+end
+
+-- Decode a DNS name from a packet at a given position
+function DecodeDnsName(packet, pos)
+    local labels = {}
+    local jumped = false
+    local originalPos = pos
+
+    while pos <= #packet do
+        local len = string.byte(packet, pos)
+
+        if len == 0 then
+            pos = pos + 1
+            break
+        elseif len >= 192 then
+            -- Pointer (compression)
+            if not jumped then
+                originalPos = pos + 2
+            end
+            local offset = ((len - 192) * 256) + string.byte(packet, pos + 1)
+            pos = offset + 1
+            jumped = true
+        else
+            pos = pos + 1
+            local label = string.sub(packet, pos, pos + len - 1)
+            table.insert(labels, label)
+            pos = pos + len
+        end
+    end
+
+    if jumped then
+        pos = originalPos
+    end
+
+    return table.concat(labels, "."), pos
+end
+
+-- Build an mDNS query packet for Fire TV discovery
+function BuildMdnsQuery()
+    -- Transaction ID (0x0000 for mDNS)
+    local transactionId = string.char(0x00, 0x00)
+
+    -- Flags (0x0000 for standard query)
+    local flags = string.char(0x00, 0x00)
+
+    -- Question count (1)
+    local qdCount = string.char(0x00, 0x01)
+
+    -- Answer, Authority, Additional counts (0)
+    local anCount = string.char(0x00, 0x00)
+    local nsCount = string.char(0x00, 0x00)
+    local arCount = string.char(0x00, 0x00)
+
+    -- Header
+    local header = transactionId .. flags .. qdCount .. anCount .. nsCount .. arCount
+
+    -- Question: _amzn-wplay._tcp.local. PTR IN
+    local qname = EncodeDnsName(MDNS_SERVICE_TYPE)
+    local qtype = string.char(0x00, DNS_TYPE_PTR)  -- PTR
+    local qclass = string.char(0x00, 0x01)         -- IN
+
+    local question = qname .. qtype .. qclass
+
+    return header .. question
+end
+
+-- Parse a 16-bit big-endian integer
+function ParseUint16(packet, pos)
+    local high = string.byte(packet, pos) or 0
+    local low = string.byte(packet, pos + 1) or 0
+    return (high * 256) + low
+end
+
+-- Parse a 32-bit big-endian integer
+function ParseUint32(packet, pos)
+    local b1 = string.byte(packet, pos) or 0
+    local b2 = string.byte(packet, pos + 1) or 0
+    local b3 = string.byte(packet, pos + 2) or 0
+    local b4 = string.byte(packet, pos + 3) or 0
+    return (b1 * 16777216) + (b2 * 65536) + (b3 * 256) + b4
+end
+
+-- Parse TXT record data into a table
+function ParseTxtRecord(data)
+    local result = {}
+    local pos = 1
+    local len = #data
+
+    while pos <= len do
+        local strLen = string.byte(data, pos)
+        if not strLen or strLen == 0 then break end
+
+        pos = pos + 1
+        if pos + strLen - 1 > len then break end
+
+        local str = string.sub(data, pos, pos + strLen - 1)
+        pos = pos + strLen
+
+        -- Parse key=value
+        local eq = string.find(str, "=")
+        if eq then
+            local key = string.sub(str, 1, eq - 1)
+            local value = string.sub(str, eq + 1)
+            result[key] = value
+        end
+    end
+
+    return result
+end
+
+-- Parse an mDNS response packet
+function ParseMdnsResponse(packet, sourceIp)
+    if #packet < 12 then
+        dbg("mDNS packet too short: %d bytes", #packet)
+        return nil
+    end
+
+    local pos = 1
+
+    -- Parse header
+    local transactionId = ParseUint16(packet, pos)
+    pos = pos + 2
+    local flags = ParseUint16(packet, pos)
+    pos = pos + 2
+    local qdCount = ParseUint16(packet, pos)
+    pos = pos + 2
+    local anCount = ParseUint16(packet, pos)
+    pos = pos + 2
+    local nsCount = ParseUint16(packet, pos)
+    pos = pos + 2
+    local arCount = ParseUint16(packet, pos)
+    pos = pos + 12
+
+    dbg("mDNS response: flags=%04x, questions=%d, answers=%d, authority=%d, additional=%d",
+        flags, qdCount, anCount, nsCount, arCount)
+
+    -- Skip questions
+    for i = 1, qdCount do
+        local name
+        name, pos = DecodeDnsName(packet, pos)
+        pos = pos + 4  -- Skip QTYPE and QCLASS
+    end
+
+    local device = {
+        host = sourceIp,
+        port = API_PORT,
+        name = nil,
+        model = nil,
+        manufacturer = nil,
+        properties = {}
+    }
+
+    local foundFireTV = false
+
+    -- Parse all resource records
+    local totalRecords = anCount + nsCount + arCount
+
+    for i = 1, totalRecords do
+        if pos > #packet then break end
+
+        local name
+        name, pos = DecodeDnsName(packet, pos)
+
+        if pos + 10 > #packet then break end
+
+        local rtype = ParseUint16(packet, pos)
+        pos = pos + 2
+        local rclass = ParseUint16(packet, pos) % 32768  -- Remove cache flush bit
+        pos = pos + 2
+        local ttl = ParseUint32(packet, pos)
+        pos = pos + 4
+        local rdlength = ParseUint16(packet, pos)
+        pos = pos + 2
+
+        if pos + rdlength > #packet + 1 then break end
+
+        local rdata = string.sub(packet, pos, pos + rdlength - 1)
+        pos = pos + rdlength
+
+        dbg("mDNS record: name=%s, type=%d, class=%d, ttl=%d, len=%d",
+            name, rtype, rclass, ttl, rdlength)
+
+        -- Check if this is a Fire TV service
+        if string.find(name, "_amzn-wplay") or string.find(name, "amzn") then
+            foundFireTV = true
+        end
+
+        if rtype == DNS_TYPE_PTR then
+            -- PTR record - contains service instance name
+            local ptrName
+            ptrName, _ = DecodeDnsName(packet, pos - rdlength)
+            dbg("PTR: %s -> %s", name, ptrName)
+
+            if string.find(ptrName, "_amzn-wplay") or string.find(name, "_amzn-wplay") then
+                foundFireTV = true
+            end
+
+        elseif rtype == DNS_TYPE_TXT then
+            -- TXT record - contains device properties
+            local txtData = ParseTxtRecord(rdata)
+            dbg("TXT record parsed")
+
+            for k, v in pairs(txtData) do
+                dbg("  TXT: %s = %s", k, v)
+                device.properties[k] = v
+            end
+
+            -- Extract device name from TXT record
+            device.name = txtData["fn"] or txtData["n"] or txtData["friendlyName"] or device.name
+            device.model = txtData["md"] or txtData["model"] or device.model
+            device.manufacturer = txtData["manufacturer"] or device.manufacturer
+
+        elseif rtype == DNS_TYPE_SRV then
+            -- SRV record - contains port and target
+            if rdlength >= 6 then
+                local priority = ParseUint16(rdata, 1)
+                local weight = ParseUint16(rdata, 3)
+                local port = ParseUint16(rdata, 5)
+                local target
+                target, _ = DecodeDnsName(packet, pos - rdlength + 6)
+
+                dbg("SRV: priority=%d, weight=%d, port=%d, target=%s",
+                    priority, weight, port, target)
+
+                device.port = port
+            end
+
+        elseif rtype == DNS_TYPE_A then
+            -- A record - IPv4 address
+            if rdlength == 4 then
+                local ip = string.format("%d.%d.%d.%d",
+                    string.byte(rdata, 1),
+                    string.byte(rdata, 2),
+                    string.byte(rdata, 3),
+                    string.byte(rdata, 4))
+                dbg("A record: %s -> %s", name, ip)
+
+                -- Use this IP if we found it in the response
+                device.host = ip
+            end
+        end
+    end
+
+    if foundFireTV then
+        -- Set default name if not found
+        if not device.name or device.name == "" then
+            device.name = "Fire TV (" .. device.host .. ")"
+        end
+
+        return device
+    end
+
+    return nil
+end
+
+-- Start mDNS discovery
+function StartDiscovery()
+    if g_Discovery.active then
+        log("Discovery already in progress")
+        return
+    end
+
+    log("Starting mDNS discovery for Fire TV devices...")
+    g_Discovery.active = true
+    g_Discovery.startTime = os.time()
+    g_DiscoveredDevices = {}
+
+    C4:UpdateProperty("Discovery Status", "Discovering...")
+
+    -- Create multicast binding for mDNS
+    C4:CreateNetworkConnection(MDNS_BINDING_ID, MDNS_MULTICAST_ADDR)
+
+    -- Join multicast group and send query
+    C4:NetConnect(MDNS_BINDING_ID, MDNS_PORT, "MULTICAST")
+
+    -- Send the mDNS query
+    local query = BuildMdnsQuery()
+    C4:SendToNetwork(MDNS_BINDING_ID, MDNS_PORT, query)
+    dbg("Sent mDNS query (%d bytes)", #query)
+
+    -- Send query again after a short delay (some devices may miss first query)
+    SetTimer("mdns_retry", 1000, function()
+        if g_Discovery.active then
+            C4:SendToNetwork(MDNS_BINDING_ID, MDNS_PORT, query)
+            dbg("Sent mDNS query retry")
+        end
+    end)
+
+    -- Stop discovery after timeout
+    SetTimer("mdns_timeout", MDNS_DISCOVERY_TIMEOUT, function()
+        StopDiscovery()
+    end)
+end
+
+-- Stop mDNS discovery
+function StopDiscovery()
+    if not g_Discovery.active then
+        return
+    end
+
+    g_Discovery.active = false
+    KillTimer("mdns_timeout")
+    KillTimer("mdns_retry")
+
+    -- Disconnect multicast
+    C4:NetDisconnect(MDNS_BINDING_ID, MDNS_PORT)
+
+    local count = 0
+    for _ in pairs(g_DiscoveredDevices) do
+        count = count + 1
+    end
+
+    log("Discovery complete. Found %d Fire TV device(s)", count)
+
+    if count > 0 then
+        C4:UpdateProperty("Discovery Status", "Found " .. count .. " device(s)")
+    else
+        C4:UpdateProperty("Discovery Status", "No devices found")
+    end
+
+    UpdateDiscoveredDevicesList()
+end
+
+-- Update the discovered devices property list
+function UpdateDiscoveredDevicesList()
+    local items = {"-- Select Device --"}
+
+    for host, device in pairs(g_DiscoveredDevices) do
+        local displayName = device.name or ("Fire TV (" .. host .. ")")
+        if device.model then
+            displayName = displayName .. " [" .. device.model .. "]"
+        end
+        table.insert(items, displayName .. "|" .. host)
+    end
+
+    -- Sort by name
+    table.sort(items, function(a, b)
+        if a == "-- Select Device --" then return true end
+        if b == "-- Select Device --" then return false end
+        return a < b
+    end)
+
+    -- Create comma-separated list for property
+    local itemList = table.concat(items, ",")
+    C4:UpdatePropertyList("Discovered Devices", itemList)
+end
+
+-- Handle mDNS response from network
+function HandleMdnsResponse(data, sourceIp)
+    if not g_Discovery.active then
+        return
+    end
+
+    dbg("Received mDNS response from %s (%d bytes)", sourceIp, #data)
+
+    local device = ParseMdnsResponse(data, sourceIp)
+
+    if device then
+        -- Use the actual source IP if the parsed one doesn't make sense
+        local deviceHost = device.host or sourceIp
+
+        -- Check if we already have this device
+        if not g_DiscoveredDevices[deviceHost] then
+            log("Discovered Fire TV: %s at %s", device.name or "Unknown", deviceHost)
+
+            g_DiscoveredDevices[deviceHost] = device
+
+            -- Persist discovered devices
+            PersistData.discoveredDevices = g_DiscoveredDevices
+
+            -- Update the device list
+            UpdateDiscoveredDevicesList()
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -932,6 +1340,14 @@ function OnDriverLateInit()
         C4:UpdateProperty("Fire TV IP Address", g_FireTV.host)
     end
 
+    -- Restore discovered devices
+    if PersistData.discoveredDevices then
+        g_DiscoveredDevices = PersistData.discoveredDevices
+        UpdateDiscoveredDevicesList()
+        log("Restored %d discovered device(s) from storage",
+            (function() local c=0; for _ in pairs(g_DiscoveredDevices) do c=c+1 end; return c end)())
+    end
+
     -- Initialize properties
     for property, _ in pairs(Properties) do
         OnPropertyChanged(property)
@@ -945,6 +1361,12 @@ end
 
 function OnDriverDestroyed()
     log("Driver being destroyed...")
+
+    -- Stop discovery if active
+    if g_Discovery.active then
+        StopDiscovery()
+    end
+
     KillAllTimers()
 end
 
@@ -957,7 +1379,43 @@ function OnPropertyChanged(strProperty)
 
     dbg("Property changed: %s = %s", strProperty, tostring(value))
 
-    if strProperty == "Fire TV IP Address" then
+    if strProperty == "Discovered Devices" then
+        -- Handle device selection from discovery list
+        if value and value ~= "" and value ~= "-- Select Device --" then
+            -- Extract IP from "Device Name|IP" format
+            local pipePos = string.find(value, "|")
+            if pipePos then
+                local selectedIp = string.sub(value, pipePos + 1)
+                local selectedName = string.sub(value, 1, pipePos - 1)
+
+                log("Selected device: %s (%s)", selectedName, selectedIp)
+
+                -- Update the IP address property
+                g_FireTV.host = selectedIp
+                PersistData.host = selectedIp
+                C4:UpdateProperty("Fire TV IP Address", selectedIp)
+
+                -- Get the device info if available
+                if g_DiscoveredDevices[selectedIp] then
+                    local device = g_DiscoveredDevices[selectedIp]
+                    C4:UpdateProperty("Fire TV Name", device.name or "Fire TV")
+                end
+
+                -- Check pairing status
+                if PersistData.clientToken then
+                    g_FireTV.clientToken = PersistData.clientToken
+                    g_FireTV.paired = true
+                    C4:UpdateProperty("Pairing Status", "Paired")
+                else
+                    g_FireTV.paired = false
+                    C4:UpdateProperty("Pairing Status", "Not Paired")
+                end
+
+                C4:UpdateProperty("Connection Status", "Not Connected")
+            end
+        end
+
+    elseif strProperty == "Fire TV IP Address" then
         if value and value ~= "" then
             g_FireTV.host = value
             PersistData.host = value
@@ -1014,8 +1472,15 @@ function ExecuteCommand(strCommand, tParams)
         end
     end
 
+    -- Discovery commands
+    if strCommand == "DiscoverDevices" then
+        StartDiscovery()
+
+    elseif strCommand == "StopDiscovery" then
+        StopDiscovery()
+
     -- Pairing commands
-    if strCommand == "StartPairing" then
+    elseif strCommand == "StartPairing" then
         RequestPin()
 
     elseif strCommand == "VerifyPIN" then
@@ -1181,7 +1646,23 @@ end
 --------------------------------------------------------------------------------
 
 function ReceivedFromNetwork(idBinding, nPort, strData)
-    dbg("ReceivedFromNetwork: binding=%d, port=%d, data=%s", idBinding, nPort, strData)
+    dbg("ReceivedFromNetwork: binding=%d, port=%d, len=%d", idBinding, nPort, #strData)
+
+    -- Handle mDNS responses
+    if idBinding == MDNS_BINDING_ID and nPort == MDNS_PORT then
+        -- Extract source IP from the connection context if available
+        -- For multicast responses, we need to parse the data
+        -- The source IP should be available via GetSenderAddress in some Control4 versions
+        local sourceIp = "unknown"
+
+        -- Try to get sender address (may not be available in all OS versions)
+        if C4.GetSenderAddress then
+            sourceIp = C4:GetSenderAddress(idBinding) or "unknown"
+        end
+
+        -- Parse and handle the mDNS response
+        HandleMdnsResponse(strData, sourceIp)
+    end
 end
 
 function OnConnectionStatusChanged(idBinding, nPort, strStatus)

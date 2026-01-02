@@ -157,6 +157,7 @@
             <li><a href="#overview">Overview</a></li>
             <li><a href="#requirements">Requirements</a></li>
             <li><a href="#installation">Installation</a></li>
+            <li><a href="#discovery">Device Discovery</a></li>
             <li><a href="#pairing">Pairing Your Fire TV</a></li>
             <li><a href="#properties">Driver Properties</a></li>
             <li><a href="#commands">Available Commands</a></li>
@@ -178,6 +179,7 @@
 
     <h3>Features</h3>
     <ul>
+        <li><strong>Automatic Device Discovery</strong> - Find Fire TV devices on your network via mDNS</li>
         <li>Full D-pad navigation (Up, Down, Left, Right, Select)</li>
         <li>System buttons (Home, Back, Menu)</li>
         <li>Media control (Play/Pause, Fast Forward, Rewind)</li>
@@ -234,9 +236,71 @@
 
     <div class="step">
         <div class="step-number">4</div>
-        <strong>Configure IP Address</strong><br>
-        Select the driver and enter your Fire TV's IP address in the <em>Fire TV IP Address</em>
-        property. You can find this in Fire TV Settings &gt; Network.
+        <strong>Configure Fire TV</strong><br>
+        Use automatic discovery (recommended) or manually enter your Fire TV's IP address.
+        See the <a href="#discovery">Device Discovery</a> section below.
+    </div>
+
+    <h2 id="discovery">Device Discovery</h2>
+
+    <p>
+        The driver includes <strong>automatic mDNS discovery</strong> to find Fire TV devices on your
+        network. This eliminates the need to manually look up IP addresses.
+    </p>
+
+    <h3>Using Automatic Discovery (Recommended)</h3>
+
+    <div class="step">
+        <div class="step-number">1</div>
+        <strong>Start Discovery</strong><br>
+        In Composer Pro, select the Fire TV driver and click the <em>Discover Devices</em> action button.
+        The Discovery Status will change to "Discovering...".
+    </div>
+
+    <div class="step">
+        <div class="step-number">2</div>
+        <strong>Wait for Results</strong><br>
+        Discovery runs for about 10 seconds, scanning the network for Fire TV devices using mDNS
+        (multicast DNS). The driver queries for the <code>_amzn-wplay._tcp.local.</code> service.
+    </div>
+
+    <div class="step">
+        <div class="step-number">3</div>
+        <strong>Select Your Device</strong><br>
+        Once discovery completes, the <em>Discovered Devices</em> dropdown will populate with all
+        found Fire TV devices. Select your device from the list.
+    </div>
+
+    <div class="step">
+        <div class="step-number">4</div>
+        <strong>Automatic Configuration</strong><br>
+        When you select a device, its IP address and name are automatically filled in.
+        The driver remembers discovered devices across restarts.
+    </div>
+
+    <div class="success">
+        <strong>Tip:</strong> Discovered devices are saved and will appear in the dropdown
+        even after restarting the driver. Click <em>Discover Devices</em> again to refresh
+        the list if you add new Fire TV devices to your network.
+    </div>
+
+    <h3>Manual Configuration</h3>
+
+    <p>
+        If automatic discovery doesn't find your device (e.g., due to network segmentation),
+        you can manually enter the IP address:
+    </p>
+
+    <ol>
+        <li>On your Fire TV, go to <em>Settings &gt; My Fire TV &gt; About &gt; Network</em></li>
+        <li>Note the IP address shown</li>
+        <li>In Composer Pro, enter this IP in the <em>Fire TV IP Address</em> property</li>
+    </ol>
+
+    <div class="note">
+        <strong>Note:</strong> For mDNS discovery to work, the Control4 controller and Fire TV
+        must be on the same network segment. If they're on different VLANs, you may need to
+        enable mDNS reflection/relay on your network equipment, or use manual configuration.
     </div>
 
     <h2 id="pairing">Pairing Your Fire TV</h2>
@@ -297,6 +361,16 @@
             <th>Property</th>
             <th>Description</th>
             <th>Editable</th>
+        </tr>
+        <tr>
+            <td>Discovered Devices</td>
+            <td>Dropdown list of Fire TV devices found via mDNS discovery</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Discovery Status</td>
+            <td>Current state of device discovery</td>
+            <td>No</td>
         </tr>
         <tr>
             <td>Fire TV IP Address</td>
@@ -453,6 +527,22 @@
         </tr>
     </table>
 
+    <h3>Discovery Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>DiscoverDevices</td>
+            <td>Start mDNS discovery for Fire TV devices on the network</td>
+        </tr>
+        <tr>
+            <td>StopDiscovery</td>
+            <td>Stop an in-progress discovery scan</td>
+        </tr>
+    </table>
+
     <h3>Utility Commands</h3>
     <table>
         <tr>
@@ -507,6 +597,16 @@ When Button Press on Keypad Button 2:
     - Fire TV Remote -> PlayPause</code></pre>
 
     <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h3>Discovery Not Finding Devices</h3>
+    <ul>
+        <li>Ensure Fire TV is powered on and connected to the network</li>
+        <li>Verify Fire TV and Control4 are on the same network/VLAN</li>
+        <li>Some routers block mDNS multicast traffic - check router settings</li>
+        <li>If on different VLANs, enable mDNS relay/reflection on your router</li>
+        <li>Try running discovery multiple times - some devices respond slowly</li>
+        <li>As a fallback, use manual IP configuration instead</li>
+    </ul>
 
     <h3>Cannot Connect to Fire TV</h3>
     <ul>
