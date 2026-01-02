@@ -8,7 +8,7 @@
     <creator>Community</creator>
     <created>01/01/2024 00:00</created>
     <modified>01/01/2024 00:00</modified>
-    <version>1</version>
+    <version>2</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>
@@ -31,24 +31,6 @@
 
         <!-- Driver Properties -->
         <properties>
-            <!-- Discovery Settings -->
-            <property>
-                <name>Discovered Devices</name>
-                <type>LIST</type>
-                <items>
-                    <item>-- Select Device --</item>
-                </items>
-                <default>-- Select Device --</default>
-                <readonly>false</readonly>
-            </property>
-
-            <property>
-                <name>Discovery Status</name>
-                <type>STRING</type>
-                <default>Not Started</default>
-                <readonly>true</readonly>
-            </property>
-
             <!-- Connection Settings -->
             <property>
                 <name>Fire TV IP Address</name>
@@ -104,15 +86,6 @@
             </property>
 
             <property>
-                <name>Discovery Timeout</name>
-                <type>RANGED_INTEGER</type>
-                <minimum>5</minimum>
-                <maximum>60</maximum>
-                <default>10</default>
-                <readonly>false</readonly>
-            </property>
-
-            <property>
                 <name>Auto Wake</name>
                 <type>LIST</type>
                 <items>
@@ -145,16 +118,6 @@
         <!-- Actions (UI buttons in Composer) -->
         <actions>
             <action>
-                <name>Discover Devices</name>
-                <command>DiscoverDevices</command>
-            </action>
-
-            <action>
-                <name>Stop Discovery</name>
-                <command>StopDiscovery</command>
-            </action>
-
-            <action>
                 <name>Start Pairing</name>
                 <command>StartPairing</command>
             </action>
@@ -182,17 +145,6 @@
 
         <!-- Commands (for programming and drivers) -->
         <commands>
-            <!-- Discovery Commands -->
-            <command>
-                <name>DiscoverDevices</name>
-                <description>Start mDNS discovery for Fire TV devices</description>
-            </command>
-
-            <command>
-                <name>StopDiscovery</name>
-                <description>Stop mDNS discovery</description>
-            </command>
-
             <!-- Pairing Commands -->
             <command>
                 <name>StartPairing</name>
