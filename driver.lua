@@ -49,6 +49,9 @@ g_FireTV = {
     friendlyName = "Control4"
 }
 
+-- Pending HTTP request handlers (for legacy urlPost/urlGet API)
+g_PendingRequests = {}
+
 g_Timers = {}
 
 --------------------------------------------------------------------------------
@@ -393,42 +396,64 @@ function BuildHeaders(authenticated)
     return headers
 end
 
--- Make HTTP GET request using C4:url() interface
+-- Make HTTP GET request using legacy C4:urlGet API
+-- This is more reliable for OS 2.10.6 compatibility
 function HttpGet(url, headers, callback)
     dbg("HTTP GET: %s", url)
 
     local requestHeaders = headers or {}
 
-    C4:url()
-        :SetOption("timeout", g_FireTV.timeout)
-        :SetOption("fail_on_error", false)
-        :SetOption("ssl_verify_peer", false)  -- Fire TV uses self-signed certs
-        :SetOption("ssl_verify_host", false)
-        :OnDone(function(transfer, responses, errCode, errMsg)
-            local success = false
-            local responseCode = nil
-            local responseBody = nil
-            local errorStr = errMsg
+    -- Use legacy C4:urlGet API - signature: C4:urlGet(url, headers, allowSelfSignedCert)
+    local ticket = C4:urlGet(url, requestHeaders, true)
 
-            if errCode == 0 and responses and #responses > 0 then
-                local lastResponse = responses[#responses]
-                responseCode = lastResponse.code
-                responseBody = lastResponse.body
-                success = responseCode and responseCode >= 200 and responseCode < 300
-            end
-
-            dbg("HTTP GET Response: code=%s, errCode=%s, errMsg=%s",
-                tostring(responseCode), tostring(errCode), tostring(errMsg))
-
-            if callback then
-                callback(success, responseBody, responseCode, errorStr)
-            end
-        end)
-        :Get(url, requestHeaders)
+    if ticket and ticket ~= 0 then
+        -- Store callback for when response arrives via ReceivedAsync
+        table.insert(g_PendingRequests, {
+            ticket = ticket,
+            callback = callback,
+            url = url,
+            method = "GET"
+        })
+        dbg("HTTP GET queued with ticket: %s", tostring(ticket))
+    else
+        logError("HTTP GET failed to send: no ticket returned")
+        if callback then
+            callback(false, nil, nil, "Failed to send request")
+        end
+    end
 end
 
--- Make HTTP POST request using C4:url() interface
--- Note: For OS 2.10.6 compatibility, we explicitly set Content-Length header
+-- ReceivedAsync callback for legacy C4:urlPost/C4:urlGet API
+-- This is called by Control4 when an HTTP request completes
+function ReceivedAsync(ticketId, strData, responseCode, tHeaders, strError)
+    dbg("ReceivedAsync: ticket=%s, code=%s, error=%s",
+        tostring(ticketId), tostring(responseCode), tostring(strError))
+
+    -- Find the matching request
+    for i, request in ipairs(g_PendingRequests) do
+        if request.ticket == ticketId then
+            -- Remove from pending list
+            table.remove(g_PendingRequests, i)
+
+            -- Determine success
+            local success = (strError == nil or strError == "") and
+                           responseCode and responseCode >= 200 and responseCode < 300
+
+            dbg("HTTP Response: code=%s, body=%s", tostring(responseCode), tostring(strData))
+
+            -- Call the callback
+            if request.callback then
+                request.callback(success, strData, responseCode, strError)
+            end
+            return
+        end
+    end
+
+    dbg("ReceivedAsync: No matching request for ticket %s", tostring(ticketId))
+end
+
+-- Make HTTP POST request using legacy C4:urlPost API
+-- This is more reliable for OS 2.10.6 compatibility
 function HttpPost(url, data, headers, callback)
     local body = data or ""
 
@@ -439,59 +464,30 @@ function HttpPost(url, data, headers, callback)
     dbg("HTTP POST: %s", url)
     dbg("HTTP POST Body (%d bytes): %s", #body, body)
 
-    -- Debug: show first few bytes as hex to detect encoding issues
-    if #body > 0 then
-        local hexBytes = {}
-        for i = 1, math.min(20, #body) do
-            table.insert(hexBytes, string.format("%02X", string.byte(body, i)))
-        end
-        dbg("HTTP POST Body hex: %s", table.concat(hexBytes, " "))
-    end
-
-    -- Merge provided headers with Content-Length
     local requestHeaders = headers or {}
-    if body ~= "" then
-        requestHeaders["Content-Length"] = tostring(#body)
-    end
 
     -- Debug: log all headers being sent
     for k, v in pairs(requestHeaders) do
         dbg("HTTP Header: %s: %s", k, v)
     end
 
-    local ok, err = pcall(function()
-        C4:url()
-            :SetOption("timeout", g_FireTV.timeout)
-            :SetOption("fail_on_error", false)
-            :SetOption("ssl_verify_peer", false)  -- Fire TV uses self-signed certs
-            :SetOption("ssl_verify_host", false)
-            :OnDone(function(transfer, responses, errCode, errMsg)
-                local success = false
-                local responseCode = nil
-                local responseBody = nil
-                local errorStr = errMsg
+    -- Use legacy C4:urlPost API - signature: C4:urlPost(url, data, headers, allowSelfSignedCert)
+    -- The 4th parameter enables self-signed cert support for HTTPS
+    local ticket = C4:urlPost(url, body, requestHeaders, true)
 
-                if errCode == 0 and responses and #responses > 0 then
-                    local lastResponse = responses[#responses]
-                    responseCode = lastResponse.code
-                    responseBody = lastResponse.body
-                    success = responseCode and responseCode >= 200 and responseCode < 300
-                end
-
-                dbg("HTTP POST Response: code=%s, errCode=%s, errMsg=%s, body=%s",
-                    tostring(responseCode), tostring(errCode), tostring(errMsg), tostring(responseBody))
-
-                if callback then
-                    callback(success, responseBody, responseCode, errorStr)
-                end
-            end)
-            :Post(url, body, requestHeaders)
-    end)
-
-    if not ok then
-        logError("HTTP POST failed to send: %s", tostring(err))
+    if ticket and ticket ~= 0 then
+        -- Store callback for when response arrives via ReceivedAsync
+        table.insert(g_PendingRequests, {
+            ticket = ticket,
+            callback = callback,
+            url = url,
+            method = "POST"
+        })
+        dbg("HTTP POST queued with ticket: %s", tostring(ticket))
+    else
+        logError("HTTP POST failed to send: no ticket returned")
         if callback then
-            callback(false, nil, nil, tostring(err))
+            callback(false, nil, nil, "Failed to send request")
         end
     end
 end
