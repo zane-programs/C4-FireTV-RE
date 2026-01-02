@@ -212,6 +212,12 @@
         8009 (HTTP) and 8080 (HTTPS).
     </div>
 
+    <div class="note">
+        <strong>SSL Certificate:</strong> The Fire TV uses a self-signed SSL certificate on port 8080.
+        Control4 OS 2.10.6+ handles this automatically. If you experience connection issues, verify
+        your network allows HTTPS connections with self-signed certificates.
+    </div>
+
     <h2 id="installation">Installation</h2>
 
     <div class="step">
@@ -405,6 +411,11 @@
         <tr>
             <td>Command Timeout</td>
             <td>HTTP request timeout in seconds (5-30)</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Discovery Timeout</td>
+            <td>mDNS discovery duration in seconds (5-60)</td>
             <td>Yes</td>
         </tr>
         <tr>

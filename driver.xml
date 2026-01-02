@@ -104,6 +104,15 @@
             </property>
 
             <property>
+                <name>Discovery Timeout</name>
+                <type>RANGED_INTEGER</type>
+                <minimum>5</minimum>
+                <maximum>60</maximum>
+                <default>10</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
                 <name>Auto Wake</name>
                 <type>LIST</type>
                 <items>
