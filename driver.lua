@@ -378,9 +378,10 @@ end
 --------------------------------------------------------------------------------
 
 -- Build standard headers for Fire TV API
+-- Note: Content-Length is added by HttpPost, not here
 function BuildHeaders(authenticated)
     local headers = {
-        ["Content-Type"] = "application/json; charset=utf-8",
+        ["Content-Type"] = "application/json",
         ["Accept"] = "*/*",
         ["x-api-key"] = API_KEY
     }
@@ -427,6 +428,7 @@ function HttpGet(url, headers, callback)
 end
 
 -- Make HTTP POST request using C4:url() interface
+-- Note: For OS 2.10.6 compatibility, we explicitly set Content-Length header
 function HttpPost(url, data, headers, callback)
     local body = data or ""
 
@@ -435,36 +437,63 @@ function HttpPost(url, data, headers, callback)
     end
 
     dbg("HTTP POST: %s", url)
-    dbg("HTTP POST Body: %s", body)
+    dbg("HTTP POST Body (%d bytes): %s", #body, body)
 
+    -- Debug: show first few bytes as hex to detect encoding issues
+    if #body > 0 then
+        local hexBytes = {}
+        for i = 1, math.min(20, #body) do
+            table.insert(hexBytes, string.format("%02X", string.byte(body, i)))
+        end
+        dbg("HTTP POST Body hex: %s", table.concat(hexBytes, " "))
+    end
+
+    -- Merge provided headers with Content-Length
     local requestHeaders = headers or {}
+    if body ~= "" then
+        requestHeaders["Content-Length"] = tostring(#body)
+    end
 
-    C4:url()
-        :SetOption("timeout", g_FireTV.timeout)
-        :SetOption("fail_on_error", false)
-        :SetOption("ssl_verify_peer", false)  -- Fire TV uses self-signed certs
-        :SetOption("ssl_verify_host", false)
-        :OnDone(function(transfer, responses, errCode, errMsg)
-            local success = false
-            local responseCode = nil
-            local responseBody = nil
-            local errorStr = errMsg
+    -- Debug: log all headers being sent
+    for k, v in pairs(requestHeaders) do
+        dbg("HTTP Header: %s: %s", k, v)
+    end
 
-            if errCode == 0 and responses and #responses > 0 then
-                local lastResponse = responses[#responses]
-                responseCode = lastResponse.code
-                responseBody = lastResponse.body
-                success = responseCode and responseCode >= 200 and responseCode < 300
-            end
+    local ok, err = pcall(function()
+        C4:url()
+            :SetOption("timeout", g_FireTV.timeout)
+            :SetOption("fail_on_error", false)
+            :SetOption("ssl_verify_peer", false)  -- Fire TV uses self-signed certs
+            :SetOption("ssl_verify_host", false)
+            :OnDone(function(transfer, responses, errCode, errMsg)
+                local success = false
+                local responseCode = nil
+                local responseBody = nil
+                local errorStr = errMsg
 
-            dbg("HTTP POST Response: code=%s, errCode=%s, errMsg=%s, body=%s",
-                tostring(responseCode), tostring(errCode), tostring(errMsg), tostring(responseBody))
+                if errCode == 0 and responses and #responses > 0 then
+                    local lastResponse = responses[#responses]
+                    responseCode = lastResponse.code
+                    responseBody = lastResponse.body
+                    success = responseCode and responseCode >= 200 and responseCode < 300
+                end
 
-            if callback then
-                callback(success, responseBody, responseCode, errorStr)
-            end
-        end)
-        :Post(url, body, requestHeaders)
+                dbg("HTTP POST Response: code=%s, errCode=%s, errMsg=%s, body=%s",
+                    tostring(responseCode), tostring(errCode), tostring(errMsg), tostring(responseBody))
+
+                if callback then
+                    callback(success, responseBody, responseCode, errorStr)
+                end
+            end)
+            :Post(url, body, requestHeaders)
+    end)
+
+    if not ok then
+        logError("HTTP POST failed to send: %s", tostring(err))
+        if callback then
+            callback(false, nil, nil, tostring(err))
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
