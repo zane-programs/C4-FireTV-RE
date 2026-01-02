@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire TV Remote - Control4 Driver Documentation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background: #f9f9f9;
+        }
+        h1, h2, h3 {
+            color: #1a1a1a;
+            border-bottom: 2px solid #ff9900;
+            padding-bottom: 8px;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 3px solid #ff9900;
+        }
+        .logo {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #ff9900;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ff9900;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .step {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            position: relative;
+            padding-left: 60px;
+        }
+        .step-number {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 35px;
+            height: 35px;
+            background: #ff9900;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        ul, ol {
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .toc {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .toc a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        .toc > ul {
+            padding-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">&#x1F4FA;</div>
+    <h1>Fire TV Remote Driver</h1>
+    <p style="text-align: center; font-size: 1.1em; color: #666;">
+        Control4 Driver for Amazon Fire TV Devices<br>
+        <em>Version 1.0.0 | Compatible with Control4 OS 2.10.6+</em>
+    </p>
+
+    <div class="toc">
+        <h3>Table of Contents</h3>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#requirements">Requirements</a></li>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#pairing">Pairing Your Fire TV</a></li>
+            <li><a href="#properties">Driver Properties</a></li>
+            <li><a href="#commands">Available Commands</a></li>
+            <li><a href="#programming">Programming Examples</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>
+        The Fire TV Remote driver enables your Control4 system to control Amazon Fire TV devices
+        over your local network. This includes Fire TV Stick, Fire TV Cube, and Fire TV built into
+        compatible smart TVs.
+    </p>
+    <p>
+        Once paired, you can navigate menus, control media playback, type text, and integrate
+        Fire TV control into your Control4 programming and scenes.
+    </p>
+
+    <h3>Features</h3>
+    <ul>
+        <li>Full D-pad navigation (Up, Down, Left, Right, Select)</li>
+        <li>System buttons (Home, Back, Menu)</li>
+        <li>Media control (Play/Pause, Fast Forward, Rewind)</li>
+        <li>Text input for search and keyboards</li>
+        <li>Automatic device wake functionality</li>
+        <li>Persistent pairing - pair once, connect anytime</li>
+        <li>Integration with Control4 programming and scenes</li>
+    </ul>
+
+    <h2 id="requirements">Requirements</h2>
+
+    <h3>Control4 System</h3>
+    <ul>
+        <li>Control4 OS 2.10.6 or later</li>
+        <li>Composer Pro for driver installation and configuration</li>
+        <li>Network connectivity between Control4 controller and Fire TV</li>
+    </ul>
+
+    <h3>Fire TV Device</h3>
+    <ul>
+        <li>Amazon Fire TV Stick (any generation)</li>
+        <li>Amazon Fire TV Cube</li>
+        <li>Fire TV Edition Smart TV</li>
+        <li>Fire TV must be connected to the same network as Control4</li>
+    </ul>
+
+    <div class="note">
+        <strong>Note:</strong> The Fire TV and Control4 controller must be on the same local network
+        or have proper routing between subnets. Firewall rules may need to allow traffic on ports
+        8009 (HTTP) and 8080 (HTTPS).
+    </div>
+
+    <h2 id="installation">Installation</h2>
+
+    <div class="step">
+        <div class="step-number">1</div>
+        <strong>Download the Driver</strong><br>
+        Obtain the <code>fire_tv_remote.c4z</code> driver file.
+    </div>
+
+    <div class="step">
+        <div class="step-number">2</div>
+        <strong>Add to Composer</strong><br>
+        In Composer Pro, go to <em>Driver &gt; Add/Update Driver</em> and select the
+        <code>fire_tv_remote.c4z</code> file.
+    </div>
+
+    <div class="step">
+        <div class="step-number">3</div>
+        <strong>Add to Project</strong><br>
+        In the System Design view, find "Fire TV Remote" under your drivers and add it to
+        your project. Place it in the room where your Fire TV is located.
+    </div>
+
+    <div class="step">
+        <div class="step-number">4</div>
+        <strong>Configure IP Address</strong><br>
+        Select the driver and enter your Fire TV's IP address in the <em>Fire TV IP Address</em>
+        property. You can find this in Fire TV Settings &gt; Network.
+    </div>
+
+    <h2 id="pairing">Pairing Your Fire TV</h2>
+
+    <p>
+        Before the driver can control your Fire TV, you must complete a one-time pairing process.
+        This is similar to pairing the official Fire TV Remote app.
+    </p>
+
+    <div class="step">
+        <div class="step-number">1</div>
+        <strong>Ensure Fire TV is On</strong><br>
+        Make sure your Fire TV is powered on and at the home screen.
+    </div>
+
+    <div class="step">
+        <div class="step-number">2</div>
+        <strong>Set IP Address</strong><br>
+        In Composer Pro, enter the Fire TV's IP address in the <em>Fire TV IP Address</em> property.
+    </div>
+
+    <div class="step">
+        <div class="step-number">3</div>
+        <strong>Start Pairing</strong><br>
+        Click the <em>Start Pairing</em> action button. The Pairing Status will change to
+        "Enter PIN from TV screen".
+    </div>
+
+    <div class="step">
+        <div class="step-number">4</div>
+        <strong>Note the PIN</strong><br>
+        A 4-digit PIN will appear on your Fire TV screen.
+    </div>
+
+    <div class="step">
+        <div class="step-number">5</div>
+        <strong>Enter PIN</strong><br>
+        Type the PIN into the <em>PIN Code</em> property field in Composer.
+    </div>
+
+    <div class="step">
+        <div class="step-number">6</div>
+        <strong>Verify PIN</strong><br>
+        Click the <em>Verify PIN</em> action button. If successful, the Pairing Status will
+        change to "Paired".
+    </div>
+
+    <div class="success">
+        <strong>Success!</strong> Your Fire TV is now paired. The pairing credentials are saved
+        and will persist across controller reboots. You won't need to pair again unless you
+        clear the pairing or reinstall the driver.
+    </div>
+
+    <h2 id="properties">Driver Properties</h2>
+
+    <table>
+        <tr>
+            <th>Property</th>
+            <th>Description</th>
+            <th>Editable</th>
+        </tr>
+        <tr>
+            <td>Fire TV IP Address</td>
+            <td>The IP address of your Fire TV device</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Fire TV Name</td>
+            <td>Device name (populated after connection)</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Connection Status</td>
+            <td>Current connection state</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Pairing Status</td>
+            <td>Current pairing state</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Controller Name</td>
+            <td>Name shown on Fire TV during pairing</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>PIN Code</td>
+            <td>Enter the PIN shown on Fire TV screen</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Command Timeout</td>
+            <td>HTTP request timeout in seconds (5-30)</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Auto Wake</td>
+            <td>Automatically wake Fire TV before commands</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Debug Mode</td>
+            <td>Enable detailed logging for troubleshooting</td>
+            <td>Yes</td>
+        </tr>
+    </table>
+
+    <h2 id="commands">Available Commands</h2>
+
+    <h3>Navigation Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Up</td>
+            <td>Navigate up in menus</td>
+        </tr>
+        <tr>
+            <td>Down</td>
+            <td>Navigate down in menus</td>
+        </tr>
+        <tr>
+            <td>Left</td>
+            <td>Navigate left in menus</td>
+        </tr>
+        <tr>
+            <td>Right</td>
+            <td>Navigate right in menus</td>
+        </tr>
+        <tr>
+            <td>Select</td>
+            <td>Confirm selection / OK / Enter</td>
+        </tr>
+    </table>
+
+    <h3>System Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Home</td>
+            <td>Go to Fire TV home screen</td>
+        </tr>
+        <tr>
+            <td>Back</td>
+            <td>Go back / exit current screen</td>
+        </tr>
+        <tr>
+            <td>Menu</td>
+            <td>Open context menu</td>
+        </tr>
+    </table>
+
+    <h3>Media Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Parameters</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>PlayPause</td>
+            <td>None</td>
+            <td>Toggle play/pause</td>
+        </tr>
+        <tr>
+            <td>Play</td>
+            <td>None</td>
+            <td>Start playback</td>
+        </tr>
+        <tr>
+            <td>Pause</td>
+            <td>None</td>
+            <td>Pause playback</td>
+        </tr>
+        <tr>
+            <td>Stop</td>
+            <td>None</td>
+            <td>Stop playback</td>
+        </tr>
+        <tr>
+            <td>FastForward</td>
+            <td>Seconds (1-300)</td>
+            <td>Skip forward by specified seconds</td>
+        </tr>
+        <tr>
+            <td>Rewind</td>
+            <td>Seconds (1-300)</td>
+            <td>Skip backward by specified seconds</td>
+        </tr>
+    </table>
+
+    <h3>Text Input Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Parameters</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>SendText</td>
+            <td>Text (string)</td>
+            <td>Type a string of text</td>
+        </tr>
+        <tr>
+            <td>SendCharacter</td>
+            <td>Character (single char)</td>
+            <td>Type a single character</td>
+        </tr>
+    </table>
+
+    <h3>Utility Commands</h3>
+    <table>
+        <tr>
+            <th>Command</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Wake</td>
+            <td>Wake the Fire TV remote receiver</td>
+        </tr>
+        <tr>
+            <td>TestConnection</td>
+            <td>Test connectivity to Fire TV</td>
+        </tr>
+        <tr>
+            <td>RefreshDeviceInfo</td>
+            <td>Refresh device information</td>
+        </tr>
+        <tr>
+            <td>ClearPairing</td>
+            <td>Remove saved pairing credentials</td>
+        </tr>
+    </table>
+
+    <h2 id="programming">Programming Examples</h2>
+
+    <h3>Basic Navigation</h3>
+    <p>Use the Fire TV commands in your programming to navigate menus:</p>
+    <pre><code>When Button Press on Keypad Button 1:
+    Fire TV Remote -> Home
+
+When Button Press on Keypad Button 2:
+    Fire TV Remote -> Down
+    Fire TV Remote -> Down
+    Fire TV Remote -> Select</code></pre>
+
+    <h3>Search for Content</h3>
+    <p>Open search and type a query:</p>
+    <pre><code>When Button Press on "Search Netflix":
+    Fire TV Remote -> Home
+    Wait 1 second
+    Fire TV Remote -> Up
+    Fire TV Remote -> Select
+    Wait 2 seconds
+    Fire TV Remote -> SendText (Text: "Breaking Bad")</code></pre>
+
+    <h3>Media Control in Scene</h3>
+    <pre><code>Scene: Movie Night
+    - Dim lights to 20%
+    - Fire TV Remote -> Home
+    - Wait 1 second
+    - Fire TV Remote -> PlayPause</code></pre>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h3>Cannot Connect to Fire TV</h3>
+    <ul>
+        <li>Verify the IP address is correct</li>
+        <li>Ensure Fire TV is powered on</li>
+        <li>Check that Fire TV and Control4 are on the same network</li>
+        <li>Try the <em>Test Connection</em> action</li>
+        <li>Check firewall rules for ports 8009 and 8080</li>
+    </ul>
+
+    <h3>PIN Not Appearing on TV</h3>
+    <ul>
+        <li>Make sure the Fire TV is at the home screen</li>
+        <li>Verify the correct IP address is entered</li>
+        <li>Try clicking <em>Start Pairing</em> again</li>
+        <li>Enable Debug Mode and check logs for errors</li>
+    </ul>
+
+    <h3>PIN Verification Fails</h3>
+    <ul>
+        <li>Double-check you entered the correct PIN</li>
+        <li>The PIN expires after about 60 seconds - try requesting a new one</li>
+        <li>Ensure no extra spaces in the PIN field</li>
+    </ul>
+
+    <h3>Commands Not Working</h3>
+    <ul>
+        <li>Verify pairing status shows "Paired"</li>
+        <li>Test connection using the action button</li>
+        <li>Enable <em>Auto Wake</em> if Fire TV goes to sleep</li>
+        <li>Check Debug Mode logs for specific errors</li>
+    </ul>
+
+    <h3>Intermittent Connection</h3>
+    <ul>
+        <li>Enable <em>Auto Wake</em> to wake sleeping devices</li>
+        <li>Consider assigning a static IP to your Fire TV</li>
+        <li>Check for network stability issues</li>
+    </ul>
+
+    <div class="warning">
+        <strong>Note:</strong> If you change your Fire TV or reset it to factory settings,
+        you will need to re-pair the driver. Use the <em>Clear Pairing</em> action first,
+        then follow the pairing steps again.
+    </div>
+
+    <hr style="margin-top: 40px;">
+    <p style="text-align: center; color: #666; font-size: 0.9em;">
+        Fire TV Remote Driver for Control4<br>
+        Version 1.0.0<br>
+        Compatible with Control4 OS 2.10.6+
+    </p>
+</body>
+</html>

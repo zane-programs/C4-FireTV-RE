@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<devicedata>
+    <!-- Driver Metadata -->
+    <copyright>Copyright 2024. All rights reserved.</copyright>
+    <manufacturer>Community</manufacturer>
+    <name>Fire TV Remote</name>
+    <model>Fire TV</model>
+    <creator>Community</creator>
+    <created>01/01/2024 00:00</created>
+    <modified>01/01/2024 00:00</modified>
+    <version>1</version>
+
+    <!-- Driver Configuration -->
+    <control>lua_gen</control>
+    <controlmethod>IP</controlmethod>
+    <driver>DriverWorks</driver>
+    <auto_update>true</auto_update>
+    <minimum_auto_update_version>1</minimum_auto_update_version>
+    <minimum_os_version>2.10.6</minimum_os_version>
+
+    <!-- Small/Large Icons -->
+    <small>icons/device_sm.png</small>
+    <large>icons/device_lg.png</large>
+
+    <config>
+        <!-- Lua Script -->
+        <script file="driver.lua"/>
+
+        <!-- Documentation -->
+        <documentation file="www/documentation/index.html"/>
+
+        <!-- Driver Properties -->
+        <properties>
+            <!-- Connection Settings -->
+            <property>
+                <name>Fire TV IP Address</name>
+                <type>STRING</type>
+                <default></default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>Fire TV Name</name>
+                <type>STRING</type>
+                <default></default>
+                <readonly>true</readonly>
+            </property>
+
+            <property>
+                <name>Connection Status</name>
+                <type>STRING</type>
+                <default>Not Connected</default>
+                <readonly>true</readonly>
+            </property>
+
+            <!-- Pairing Settings -->
+            <property>
+                <name>Pairing Status</name>
+                <type>STRING</type>
+                <default>Not Paired</default>
+                <readonly>true</readonly>
+            </property>
+
+            <property>
+                <name>Controller Name</name>
+                <type>STRING</type>
+                <default>Control4</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>PIN Code</name>
+                <type>STRING</type>
+                <default></default>
+                <readonly>false</readonly>
+            </property>
+
+            <!-- Advanced Settings -->
+            <property>
+                <name>Command Timeout</name>
+                <type>RANGED_INTEGER</type>
+                <minimum>5</minimum>
+                <maximum>30</maximum>
+                <default>10</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>Auto Wake</name>
+                <type>LIST</type>
+                <items>
+                    <item>Yes</item>
+                    <item>No</item>
+                </items>
+                <default>Yes</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>Debug Mode</name>
+                <type>LIST</type>
+                <items>
+                    <item>Off</item>
+                    <item>On</item>
+                </items>
+                <default>Off</default>
+                <readonly>false</readonly>
+            </property>
+
+            <property>
+                <name>Driver Version</name>
+                <type>STRING</type>
+                <default>1.0.0</default>
+                <readonly>true</readonly>
+            </property>
+        </properties>
+
+        <!-- Actions (UI buttons in Composer) -->
+        <actions>
+            <action>
+                <name>Start Pairing</name>
+                <command>StartPairing</command>
+            </action>
+
+            <action>
+                <name>Verify PIN</name>
+                <command>VerifyPIN</command>
+            </action>
+
+            <action>
+                <name>Test Connection</name>
+                <command>TestConnection</command>
+            </action>
+
+            <action>
+                <name>Refresh Device Info</name>
+                <command>RefreshDeviceInfo</command>
+            </action>
+
+            <action>
+                <name>Clear Pairing</name>
+                <command>ClearPairing</command>
+            </action>
+        </actions>
+
+        <!-- Commands (for programming and drivers) -->
+        <commands>
+            <!-- Pairing Commands -->
+            <command>
+                <name>StartPairing</name>
+                <description>Request PIN display on Fire TV for pairing</description>
+            </command>
+
+            <command>
+                <name>VerifyPIN</name>
+                <description>Verify PIN and complete pairing</description>
+            </command>
+
+            <command>
+                <name>TestConnection</name>
+                <description>Test connection to Fire TV</description>
+            </command>
+
+            <command>
+                <name>RefreshDeviceInfo</name>
+                <description>Refresh device information</description>
+            </command>
+
+            <command>
+                <name>ClearPairing</name>
+                <description>Clear saved pairing credentials</description>
+            </command>
+
+            <!-- Navigation Commands -->
+            <command>
+                <name>Up</name>
+                <description>Navigate up</description>
+            </command>
+
+            <command>
+                <name>Down</name>
+                <description>Navigate down</description>
+            </command>
+
+            <command>
+                <name>Left</name>
+                <description>Navigate left</description>
+            </command>
+
+            <command>
+                <name>Right</name>
+                <description>Navigate right</description>
+            </command>
+
+            <command>
+                <name>Select</name>
+                <description>Select/OK/Enter</description>
+            </command>
+
+            <!-- System Commands -->
+            <command>
+                <name>Home</name>
+                <description>Go to home screen</description>
+            </command>
+
+            <command>
+                <name>Back</name>
+                <description>Go back</description>
+            </command>
+
+            <command>
+                <name>Menu</name>
+                <description>Open context menu</description>
+            </command>
+
+            <!-- Media Commands -->
+            <command>
+                <name>PlayPause</name>
+                <description>Toggle play/pause</description>
+            </command>
+
+            <command>
+                <name>Play</name>
+                <description>Play media</description>
+            </command>
+
+            <command>
+                <name>Pause</name>
+                <description>Pause media</description>
+            </command>
+
+            <command>
+                <name>Stop</name>
+                <description>Stop media</description>
+            </command>
+
+            <command>
+                <name>FastForward</name>
+                <description>Fast forward media</description>
+                <params>
+                    <param>
+                        <name>Seconds</name>
+                        <type>RANGED_INTEGER</type>
+                        <minimum>1</minimum>
+                        <maximum>300</maximum>
+                    </param>
+                </params>
+            </command>
+
+            <command>
+                <name>Rewind</name>
+                <description>Rewind media</description>
+                <params>
+                    <param>
+                        <name>Seconds</name>
+                        <type>RANGED_INTEGER</type>
+                        <minimum>1</minimum>
+                        <maximum>300</maximum>
+                    </param>
+                </params>
+            </command>
+
+            <!-- Text Input -->
+            <command>
+                <name>SendText</name>
+                <description>Send text to Fire TV keyboard</description>
+                <params>
+                    <param>
+                        <name>Text</name>
+                        <type>STRING</type>
+                    </param>
+                </params>
+            </command>
+
+            <command>
+                <name>SendCharacter</name>
+                <description>Send a single character</description>
+                <params>
+                    <param>
+                        <name>Character</name>
+                        <type>STRING</type>
+                    </param>
+                </params>
+            </command>
+
+            <!-- Utility Commands -->
+            <command>
+                <name>Wake</name>
+                <description>Wake Fire TV remote receiver</description>
+            </command>
+        </commands>
+    </config>
+
+    <!-- Proxies -->
+    <proxies>
+        <proxy proxybindingid="5001" name="Fire TV Remote">firetv_remote</proxy>
+    </proxies>
+
+    <!-- Connections -->
+    <connections>
+        <!-- Proxy Binding Connection -->
+        <connection>
+            <id>5001</id>
+            <type>2</type>
+            <connectionname>Fire TV Remote</connectionname>
+            <consumer>False</consumer>
+            <linelevel>False</linelevel>
+            <classes>
+                <class>
+                    <classname>firetv_remote</classname>
+                </class>
+            </classes>
+        </connection>
+
+        <!-- Network Connection -->
+        <connection>
+            <id>6001</id>
+            <type>4</type>
+            <connectionname>Network Connection</connectionname>
+            <consumer>True</consumer>
+            <linelevel>False</linelevel>
+        </connection>
+    </connections>
+
+    <!-- Events -->
+    <events>
+        <event>
+            <id>1</id>
+            <name>Paired</name>
+            <description>Fire TV successfully paired</description>
+        </event>
+        <event>
+            <id>2</id>
+            <name>Connection Lost</name>
+            <description>Connection to Fire TV lost</description>
+        </event>
+        <event>
+            <id>3</id>
+            <name>Connection Restored</name>
+            <description>Connection to Fire TV restored</description>
+        </event>
+        <event>
+            <id>4</id>
+            <name>Pairing Failed</name>
+            <description>Fire TV pairing failed</description>
+        </event>
+    </events>
+</devicedata>
