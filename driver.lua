@@ -1110,12 +1110,69 @@ end
 -- Proxy Communication
 --------------------------------------------------------------------------------
 
+-- Binding IDs
+PROXY_BINDING_ID = 5001
+VIDEO_OUTPUT_BINDING_ID = 2000
+AUDIO_OUTPUT_BINDING_ID = 4000
+
 function ReceivedFromProxy(idBinding, strCommand, tParams)
     dbg("ReceivedFromProxy: binding=%d, command=%s", idBinding, strCommand)
 
-    if idBinding == 5001 then
-        -- Fire TV Remote proxy commands
-        ExecuteCommand(strCommand, tParams)
+    if tParams then
+        for k, v in pairs(tParams) do
+            dbg("  Param: %s = %s", tostring(k), tostring(v))
+        end
+    end
+
+    if idBinding == PROXY_BINDING_ID then
+        -- Handle room ON/OFF commands from cable proxy
+        if strCommand == "ON" then
+            log("Room activated - waking Fire TV")
+            WakeFireTV(function(success)
+                if success then
+                    -- Optionally go to home screen when room turns on
+                    SendSystemKey("home")
+                end
+            end)
+
+        elseif strCommand == "OFF" then
+            log("Room deactivated")
+            -- Fire TV doesn't have a true power off via this protocol
+            -- Could pause media or go home if desired
+            -- SendMediaCommand("pause")
+
+        -- Handle input selection commands
+        elseif strCommand == "INPUT_SELECTION" then
+            -- Fire TV is a single-input device, just wake it
+            WakeFireTV()
+
+        -- Standard remote control commands
+        else
+            ExecuteCommand(strCommand, tParams)
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Binding Change Handler (for AV connections)
+--------------------------------------------------------------------------------
+
+function OnBindingChanged(idBinding, strClass, bIsBound, otherDeviceID, otherBindingID)
+    dbg("OnBindingChanged: binding=%d, class=%s, bound=%s, otherDevice=%s, otherBinding=%s",
+        idBinding, strClass, tostring(bIsBound), tostring(otherDeviceID), tostring(otherBindingID))
+
+    if idBinding == VIDEO_OUTPUT_BINDING_ID then
+        if bIsBound then
+            log("HDMI video output connected to device %d", otherDeviceID)
+        else
+            log("HDMI video output disconnected")
+        end
+    elseif idBinding == AUDIO_OUTPUT_BINDING_ID then
+        if bIsBound then
+            log("Audio output connected to device %d", otherDeviceID)
+        else
+            log("Audio output disconnected")
+        end
     end
 end
 
