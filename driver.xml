@@ -2,13 +2,13 @@
 <devicedata>
     <!-- Driver Metadata -->
     <copyright>Copyright 2024. All rights reserved.</copyright>
-    <manufacturer>Community</manufacturer>
-    <name>Fire TV Remote</name>
+    <manufacturer>Amazon</manufacturer>
+    <name>Fire TV Remote (RE)</name>
     <model>Fire TV</model>
-    <creator>Community</creator>
+    <creator>Zane St. John</creator>
     <created>01/02/2026 13:40</created>
-    <modified>01/02/2026 14:48</modified>
-    <version>5</version>
+    <modified>01/02/2026 14:55</modified>
+    <version>6</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>

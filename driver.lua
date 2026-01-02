@@ -1085,39 +1085,39 @@ function ExecuteCommand(strCommand, tParams)
         log("Pairing credentials cleared")
 
     -- Navigation commands
-    elseif strCommand == "Up" then
+    elseif strCommand == "UP" then
         SendDpadKey("dpad_up")
 
-    elseif strCommand == "Down" then
+    elseif strCommand == "DOWN" then
         SendDpadKey("dpad_down")
 
-    elseif strCommand == "Left" then
+    elseif strCommand == "LEFT" then
         SendDpadKey("dpad_left")
 
-    elseif strCommand == "Right" then
+    elseif strCommand == "RIGHT" then
         SendDpadKey("dpad_right")
 
-    elseif strCommand == "Select" then
+    elseif strCommand == "ENTER" then
         SendDpadKey("select")
 
     -- System commands
-    elseif strCommand == "Home" then
+    elseif strCommand == "GUIDE" then
         SendSystemKey("home")
 
-    elseif strCommand == "Back" then
+    elseif strCommand == "RECALL" then
         SendSystemKey("back")
 
-    elseif strCommand == "Menu" then
+    elseif strCommand == "CUSTOM_3" then
         SendSystemKey("menu")
 
     -- Media commands
-    elseif strCommand == "PlayPause" or strCommand == "Play" or strCommand == "Pause" then
+    elseif strCommand == "PLAY" or strCommand == "PAUSE" then
         SendMediaCommand("play")
 
     elseif strCommand == "Stop" then
         SendMediaCommand("stop")
 
-    elseif strCommand == "FastForward" then
+    elseif strCommand == "SCAN_FWD" then
         local seconds = tonumber(tParams.Seconds) or 10
         SendMediaCommand("scan", {
             direction = "forward",
@@ -1125,7 +1125,7 @@ function ExecuteCommand(strCommand, tParams)
             speed = "1"
         })
 
-    elseif strCommand == "Rewind" then
+    elseif strCommand == "SCAN_REV" then
         local seconds = tonumber(tParams.Seconds) or 10
         SendMediaCommand("scan", {
             direction = "back",
