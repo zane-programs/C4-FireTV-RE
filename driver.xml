@@ -7,8 +7,8 @@
     <model>Fire TV</model>
     <creator>Zane St. John</creator>
     <created>01/02/2026 13:40</created>
-    <modified>01/02/2026 14:55</modified>
-    <version>6</version>
+    <modified>01/02/2026 15:17</modified>
+    <version>7</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>

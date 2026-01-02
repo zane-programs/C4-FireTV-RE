@@ -1104,10 +1104,10 @@ function ExecuteCommand(strCommand, tParams)
     elseif strCommand == "GUIDE" then
         SendSystemKey("home")
 
-    elseif strCommand == "RECALL" then
+    elseif strCommand == "RECALL" or strCommand == "CANCEL" then
         SendSystemKey("back")
 
-    elseif strCommand == "CUSTOM_3" then
+    elseif strCommand == "CUSTOM_3" or strCommand == "MENU" then
         SendSystemKey("menu")
 
     -- Media commands
