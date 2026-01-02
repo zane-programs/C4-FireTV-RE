@@ -6,9 +6,9 @@
     <name>Fire TV Remote</name>
     <model>Fire TV</model>
     <creator>Community</creator>
-    <created>01/01/2024 00:00</created>
-    <modified>01/01/2024 00:00</modified>
-    <version>2</version>
+    <created>01/02/2026 13:40</created>
+    <modified>01/02/2026 13:40</modified>
+    <version>3</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>
