@@ -8,18 +8,25 @@ This is a Control4 DriverWorks driver for controlling Amazon Fire TV devices. It
 
 ## Build Command
 
-Create the installable driver package:
+Create the installable driver package using the build script:
 ```bash
-zip -r fire_tv_remote.c4z driver.xml driver.lua icons www -x "*.DS_Store"
+./build.sh
 ```
+
+This script packages all Lua files, driver.xml, icons, and www directories into `fire_tv_remote.c4z`.
 
 ## Architecture
 
 ### Driver Structure
 - `driver.xml` - Control4 driver manifest defining properties, commands, actions, connections, and proxy bindings
-- `driver.lua` - Main Lua implementation with all protocol logic
+- `driver.lua` - Main driver entry point with lifecycle, property/command handling, and proxy communication
+- `firetv.lua` - Fire TV protocol implementation (wake, pairing, key commands, media control, text input)
+- `http.lua` - HTTP request handling using C4:urlGet/urlPost API
+- `timers.lua` - Named timer management utilities
+- `json.lua` - Embedded JSON encode/decode (OS 2.10.6 compatible)
 - `icons/` - Device icons (16x16 and 32x32 PNG)
 - `www/documentation/` - HTML documentation shown in Composer
+- `build.sh` - Build script to create the .c4z package
 
 ### Key Protocol Details
 
@@ -38,20 +45,15 @@ zip -r fire_tv_remote.c4z driver.xml driver.lua icons www -x "*.DS_Store"
 - Multicast address: 224.0.0.251:5353
 - Device info extracted from TXT records (`fn`/`n` for name, `md` for model)
 
-### driver.lua Organization
+### Module Organization
 
-| Section | Purpose |
-|---------|---------|
-| Constants | API ports, timing values, binding IDs |
-| Global State | `g_FireTV`, `g_Discovery`, `g_DiscoveredDevices`, `g_Timers` |
-| JSON Library | Embedded JSON encode/decode (OS 2.10.6 compatible) |
-| mDNS Discovery | DNS packet building/parsing, multicast handling |
-| Timer Utilities | Named timer management via `SetTimer`/`KillTimer` |
-| HTTP Handling | `HttpGet`/`HttpPost` wrappers for C4:url* functions |
-| Fire TV Protocol | Wake, pairing, key commands, media control, text input |
-| Driver Lifecycle | `OnDriverInit`, `OnDriverLateInit`, `OnDriverDestroyed` |
-| Property/Command Handling | `OnPropertyChanged`, `ExecuteCommand` |
-| Proxy Communication | `ReceivedFromProxy` for Control4 room integration |
+| File | Purpose |
+|------|---------|
+| `driver.lua` | Main entry point: constants, global state, debug logging, driver lifecycle, property/command handling, proxy communication |
+| `firetv.lua` | Fire TV protocol: wake, pairing, key commands, media control, text input, connection status |
+| `http.lua` | HTTP utilities: `Http.Get`/`Http.Post` wrappers for C4:urlGet/urlPost, async response handling |
+| `timers.lua` | Timer management: `SetTimer`/`KillTimer`/`KillAllTimers` for named timers |
+| `json.lua` | JSON library: `JSON.encode`/`JSON.decode` (OS 2.10.6 compatible, no external dependencies) |
 
 ### Control4 APIs Used
 - `C4:urlGet/urlPost` - HTTP requests
