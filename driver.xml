@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <devicedata>
     <!-- Driver Metadata -->
-    <copyright>Copyright 2024. All rights reserved.</copyright>
+    <copyright>Copyright 2026. All rights reserved.</copyright>
     <manufacturer>Amazon</manufacturer>
     <name>Fire TV Remote (RE)</name>
     <model>Fire TV</model>
     <creator>Zane St. John</creator>
     <created>01/02/2026 13:40</created>
     <modified>01/03/2026 08:07</modified>
-    <version>8</version>
+    <version>9</version>
 
     <!-- Driver Configuration -->
     <control>lua_gen</control>
